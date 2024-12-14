@@ -1,0 +1,5 @@
+# Python dependencies
+requests
+flask
+rarfile
+watchdog
