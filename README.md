@@ -22,6 +22,23 @@ The following environment variables are required:
 2. Run the application using `python -m radarr_extractor.main`.
 3. Radarr will send webhook notifications to the application when a download is complete.
 
+## Docker
+
+A Docker image is available on Docker Hub: `crzyc/radarr-extractor:latest`.
+
+To run the Docker image, use the following command:
+
+```bash
+docker run -d -p 9898:9898 \
+    -e RADARR_URL=<your-radarr-url> \
+    -e RADARR_API_KEY=<your-radarr-api-key> \
+    -e DOWNLOAD_DIR=/downloads \
+    -v <your-download-dir>:/downloads \
+    <your-dockerhub-username>/radarr-extractor:latest
+```
+
+Replace `<your-radarr-url>`, `<your-radarr-api-key>`, and `<your-download-dir>` with your actual values.
+
 ## Dependencies
 
 - requests
