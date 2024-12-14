@@ -6,7 +6,7 @@ This is a simple Python application that extracts downloaded files and notifies 
 
 - Monitors a specified download directory for new files.
 - Extracts compressed archives (rar, zip, 7z, tar.gz, tar.bz2).
-- Notifies Radarr to rescan the extracted files.
+- Notifies Radarr to rescan the extracted files. 
 
 ## Configuration
 
