@@ -1,33 +1,34 @@
-# Use consistent casing and remove redundant platform arguments
+# First stage: Install dependencies
 FROM python:3.9-slim-bullseye AS builder
 
 WORKDIR /app
 
-# Install dependencies
+# Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && pip list
 
-# Copy application files
+# Copy the application code
 COPY . .
 
-# Final stage
+# Final stage: Create the runtime image
 FROM python:3.9-slim-bullseye
 
 WORKDIR /app
 
-# Copy built application from the builder stage
+# Copy the app and dependencies from the builder
 COPY --from=builder /app /app
 
-# Create a non-root user and adjust permissions
+# Create a non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser \
     && chown -R appuser:appuser /app
-
-# Switch to the non-root user
 USER appuser
 
-# Add a health check for the application
+# Expose Flask port (if needed)
+EXPOSE 5000
+
+# Health check to ensure container is running
 HEALTHCHECK --interval=5m --timeout=3s \
   CMD python -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.connect(("127.0.0.1", 5000)); s.close();'
 
-# Default command to run the application
+# Default command
 CMD ["python", "-m", "radarr_extractor.main"]

@@ -1,0 +1,20 @@
+Metadata-Version: 2.1
+Name: radarr_extractor
+Version: 0.1.0
+Summary: A tool to automatically extract downloaded movie files from Radarr and notify Radarr to rescan the extracted content.
+Home-page: https://github.com/yourusername/radarr-extractor
+Author: Your Name
+Author-email: your.email@example.com
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Libraries
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Requires-Dist: requests
+Requires-Dist: flask
+Requires-Dist: rarfile
+Requires-Dist: watchdog
