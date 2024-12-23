@@ -18,6 +18,9 @@ WORKDIR /app
 # Copy the app and dependencies from the builder
 COPY --from=builder /app /app
 
+# Set PYTHONPATH
+ENV PYTHONPATH=/usr/local/lib/python3.9/site-packages
+
 # Create a non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser \
     && chown -R appuser:appuser /app
