@@ -93,11 +93,11 @@ def scan_directory(directory):
 
 class DownloadHandler(FileSystemEventHandler):
     def on_created(self, event):
-        if not event.is_directory and not is_temp_directory(event.src_path):
+        if not event.is_directory and not is_temp_directory(event.src_path) and not event.src_path.endswith('.DS_Store'):
             logger.info(f"File system event - New file detected: {event.src_path}")
             process_file(event.src_path)
 
     def on_modified(self, event):
-        if not event.is_directory and not is_temp_directory(event.src_path):
+        if not event.is_directory and not is_temp_directory(event.src_path) and not event.src_path.endswith('.DS_Store'):
             logger.info(f"File system event - File modified: {event.src_path}")
             process_file(event.src_path)
