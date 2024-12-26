@@ -13,6 +13,8 @@ FROM python:3.9-slim-bullseye
 WORKDIR /app
 # Copy the app from the builder
 COPY --from=builder /app /app
+# Copy the unrar executable from the builder
+COPY --from=builder /usr/bin/unrar /usr/bin/unrar
 # Copy the installed packages from the builder
 COPY --from=builder /usr/local/lib/python3.9/site-packages/ /usr/local/lib/python3.9/site-packages/
 # Create a non-root user
