@@ -1,6 +1,7 @@
 # First stage: Install dependencies
 FROM python:3.9-slim-bullseye AS builder
 WORKDIR /app
+RUN apt-get update && apt-get install -y unrar
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && pip list
