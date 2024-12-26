@@ -8,6 +8,9 @@ DOWNLOAD_DIR = os.environ.get('DOWNLOAD_DIR', '/downloads')
 EXTRACTED_DIR = os.path.join(DOWNLOAD_DIR, 'extracted')
 WEBHOOK_PORT = int(os.environ.get('WEBHOOK_PORT', '9898'))
 
+# Tracker file
+TRACKER_FILE = os.path.join(DOWNLOAD_DIR, '.extracted_files')
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO, 
