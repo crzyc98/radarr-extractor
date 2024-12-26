@@ -12,6 +12,7 @@ def load_extracted_files():
 
 def record_extracted_file(file_path):
     """Record a successfully extracted file."""
+    logger.info(f"Recording extracted file: {file_path}")
     with open(TRACKER_FILE, 'a') as f:
         f.write(file_path + '\n')
 
