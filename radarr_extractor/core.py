@@ -47,6 +47,26 @@ def extract_archive(archive_path):
         logger.error(f"Extraction failed: {str(e)}")
         raise
 
+def notify_radarr(extracted_path):
+    """Notify Radarr about the new extracted files."""
+    try:
+        headers = {
+            'X-Api-Key': RADARR_API_KEY,
+            'Content-Type': 'application/json'
+        }
+        
+        endpoint = f"{RADARR_URL}/api/v3/command"
+        payload = {
+            "name": "RescanMovie",
+            "path": extracted_path
+        }
+        
+        response = requests.post(endpoint, json=payload, headers=headers)
+        response.raise_for_status()
+        logger.info(f"Notified Radarr to rescan: {extracted_path}")
+    except Exception as e:
+        logger.error(f"Failed to notify Radarr: {e}")
+
 def process_file(file_path):
     """Process a downloaded file if it's compressed."""
     

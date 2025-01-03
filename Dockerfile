@@ -19,9 +19,11 @@ COPY --from=builder /app /app
 COPY --from=builder /usr/bin/unrar /usr/bin/unrar
 # Copy the installed packages from the builder
 COPY --from=builder /usr/local/lib/python3.9/site-packages/ /usr/local/lib/python3.9/site-packages/
-# Create a non-root user
+# Create a non-root user and set permissions
 RUN groupadd -r appuser && useradd -r -g appuser appuser \
-    && chown -R appuser:appuser /app
+    && chown -R appuser:appuser /app \
+    && mkdir -p /downloads /downloads/extracted \
+    && chown -R appuser:appuser /downloads /downloads/extracted
 USER appuser
 # Expose Flask port (if needed)
 EXPOSE 5000
