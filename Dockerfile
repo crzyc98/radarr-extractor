@@ -3,7 +3,10 @@ FROM python:3.9-slim-bullseye AS builder
 WORKDIR /app
 RUN echo "deb http://deb.debian.org/debian bullseye main contrib non-free" >> /etc/apt/sources.list && \
     apt-get update && \
-    apt-get install -y unrar gosu
+    apt-get install -y unrar wget ca-certificates && \
+    wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/1.17/gosu-$(dpkg --print-architecture)" && \
+    chmod +x /usr/local/bin/gosu && \
+    gosu nobody true
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && pip list
@@ -18,7 +21,7 @@ COPY --from=builder /app /app
 # Copy the unrar executable from the builder
 COPY --from=builder /usr/bin/unrar /usr/bin/unrar
 # Copy gosu from the builder
-COPY --from=builder /usr/bin/gosu /usr/bin/gosu
+COPY --from=builder /usr/local/bin/gosu /usr/local/bin/gosu
 # Copy the installed packages from the builder
 COPY --from=builder /usr/local/lib/python3.9/site-packages/ /usr/local/lib/python3.9/site-packages/
 # Create a non-root user and set permissions

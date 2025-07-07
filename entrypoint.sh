@@ -48,4 +48,4 @@ fi
 
 # Switch to the appuser and execute the main command
 echo "Starting application as appuser (UID=$PUID, GID=$PGID)"
-exec gosu appuser "$@"
+exec /usr/local/bin/gosu appuser "$@"
