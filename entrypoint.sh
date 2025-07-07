@@ -7,6 +7,13 @@ PGID=${PGID:-1000}
 
 echo "Starting radarr-extractor with PUID=$PUID and PGID=$PGID"
 
+# Check if we're running as root
+if [ "$(id -u)" -ne 0 ]; then
+    echo "ERROR: Container must be run as root to modify user permissions"
+    echo "Current user: $(id -u):$(id -g)"
+    exit 1
+fi
+
 # Get current user info
 CURRENT_UID=$(id -u appuser 2>/dev/null || echo "1000")
 CURRENT_GID=$(id -g appuser 2>/dev/null || echo "1000")
@@ -18,11 +25,27 @@ echo "Requested PUID: $PUID, PGID: $PGID"
 if [ "$PUID" != "$CURRENT_UID" ] || [ "$PGID" != "$CURRENT_GID" ]; then
     echo "Updating appuser UID from $CURRENT_UID to $PUID and GID from $CURRENT_GID to $PGID"
     
+    # Kill any processes that might be using the user/group files
+    pkill -f "appuser" 2>/dev/null || true
+    
+    # Wait a moment for processes to exit
+    sleep 1
+    
     # Modify the group first
-    groupmod -o -g "$PGID" appuser
+    if ! groupmod -o -g "$PGID" appuser 2>/dev/null; then
+        echo "Warning: Could not modify group, trying to delete and recreate..."
+        # Try to delete and recreate the group
+        groupdel appuser 2>/dev/null || true
+        groupadd -g "$PGID" appuser
+    fi
     
     # Modify the user
-    usermod -o -u "$PUID" appuser
+    if ! usermod -o -u "$PUID" -g "$PGID" appuser 2>/dev/null; then
+        echo "Warning: Could not modify user, trying to delete and recreate..."
+        # Try to delete and recreate the user
+        userdel appuser 2>/dev/null || true
+        useradd -u "$PUID" -g "$PGID" -M -s /bin/bash appuser
+    fi
     
     echo "User permissions updated successfully"
 else

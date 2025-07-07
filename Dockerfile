@@ -36,7 +36,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 EXPOSE 9898
 # Health check to ensure container is running
 HEALTHCHECK --interval=5m --timeout=3s \
-    CMD python -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.connect(("127.0.0.1", 9898)); s.close();'
+    CMD /usr/local/bin/gosu appuser python -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.connect(("127.0.0.1", 9898)); s.close();'
 # Use entrypoint script
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 # Default command
