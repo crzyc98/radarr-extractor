@@ -11,7 +11,11 @@
       "Bash(rm:*)",
       "Bash(./docker-build.sh:*)",
       "Bash(grep:*)",
-      "Bash(PUID=3000 PGID=1000 ./docker-build.sh)"
+      "Bash(PUID=3000 PGID=1000 ./docker-build.sh)",
+      "Bash(docker inspect:*)",
+      "Bash(docker tag:*)",
+      "Bash(docker login:*)",
+      "Bash(docker push:*)"
     ],
     "deny": []
   }
