@@ -3,7 +3,10 @@
     "allow": [
       "Bash(git add:*)",
       "Bash(ls:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(docker build:*)",
+      "Bash(mkdir:*)",
+      "Bash(docker run:*)"
     ],
     "deny": []
   }

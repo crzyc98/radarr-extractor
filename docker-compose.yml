@@ -13,6 +13,7 @@ services:
       - "9898:9898"
     volumes:
       - ${DOWNLOAD_VOLUME}:/downloads
+      - ./config:/config
     restart: unless-stopped
     networks:
       - radarr_radarr_network
