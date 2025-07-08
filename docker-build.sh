@@ -1,19 +1,14 @@
 #!/bin/bash
 
-# Default PUID/PGID values
-PUID=${PUID:-1000}
-PGID=${PGID:-1000}
+echo "Building radarr-extractor with LinuxServer.io PUID/PGID support"
 
-echo "Building radarr-extractor with PUID=$PUID and PGID=$PGID"
-
-# Build the Docker image with build args
-docker build \
-    --platform linux/amd64 \
-    --build-arg PUID=$PUID \
-    --build-arg PGID=$PGID \
-    -t crzyc/radarr-extractor:latest .
+# Build the Docker image (PUID/PGID handled at runtime via environment variables)
+docker build --platform linux/amd64 -t crzyc/radarr-extractor:latest .
 
 echo "Build completed successfully!"
+echo "PUID/PGID are configured at runtime via environment variables:"
+echo "  docker run -e PUID=1000 -e PGID=1000 crzyc/radarr-extractor:latest"
+echo ""
 echo "To push to Docker Hub, run:"
 echo "  docker login"
 echo "  docker push crzyc/radarr-extractor:latest"
