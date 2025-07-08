@@ -78,12 +78,7 @@ def main():
         return
     
     try:
-        # Recursively scan download directory for existing files
-        logger.info("Starting directory scan...")
-        scan_directory(DOWNLOAD_DIR)
-        logger.info("Directory scan completed")
-        
-        # Start the file system observer
+        # Start the file system observer first
         logger.info("Starting file system observer...")
         event_handler = DownloadHandler()
         observer = Observer()
@@ -94,6 +89,18 @@ def main():
         # Start the Flask webhook server
         logger.info(f"Starting webhook server on port {WEBHOOK_PORT}")
         logger.info("Flask app is about to start...")
+        
+        # Start directory scan in a separate thread so it doesn't block Flask startup
+        import threading
+        def background_scan():
+            logger.info("Starting background directory scan...")
+            scan_directory(DOWNLOAD_DIR)
+            logger.info("Background directory scan completed")
+        
+        scan_thread = threading.Thread(target=background_scan, daemon=True)
+        scan_thread.start()
+        
+        # Start Flask server (this will block)
         app.run(host='0.0.0.0', port=WEBHOOK_PORT, debug=False)
         
     except Exception as e:
