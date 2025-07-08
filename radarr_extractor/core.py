@@ -19,7 +19,7 @@ def is_temp_directory(path):
 
 def is_compressed_file(filename):
     """Check if file is a compressed archive."""
-    compressed_extensions = ['.rar', '.zip', '.7z', '.tar.gz', '.tar.bz2']
+    compressed_extensions = ['.rar', '.zip', '.7z', '.tar.gz', '.tar.bz2', '.tar', '.tgz', '.tbz2']
     return any(filename.lower().endswith(ext) for ext in compressed_extensions)
 
 def extract_archive(archive_path):
@@ -31,14 +31,50 @@ def extract_archive(archive_path):
     logger.info(f"Extracting to same directory: {extract_dir}")
 
     try:
-        if archive_path.lower().endswith('.rar'):
-            logger.info("Detected RAR archive, using unrar")
+        archive_lower = archive_path.lower()
+        
+        if archive_lower.endswith('.rar'):
+            logger.info("Detected RAR archive, using rarfile")
             with rarfile.RarFile(archive_path) as rf:
                 rf.extractall(extract_dir)
+                
+        elif archive_lower.endswith('.zip'):
+            logger.info("Detected ZIP archive, using zipfile")
+            import zipfile
+            with zipfile.ZipFile(archive_path, 'r') as zf:
+                zf.extractall(extract_dir)
+                
+        elif archive_lower.endswith('.7z'):
+            logger.info("Detected 7Z archive, using py7zr")
+            try:
+                import py7zr
+                with py7zr.SevenZipFile(archive_path, mode='r') as z:
+                    z.extractall(extract_dir)
+            except ImportError:
+                logger.error("py7zr not installed, cannot extract 7z files")
+                raise Exception("py7zr library required for 7z extraction")
+                
+        elif archive_lower.endswith(('.tar.gz', '.tgz')):
+            logger.info("Detected TAR.GZ archive, using tarfile")
+            import tarfile
+            with tarfile.open(archive_path, 'r:gz') as tf:
+                tf.extractall(extract_dir)
+                
+        elif archive_lower.endswith(('.tar.bz2', '.tbz2')):
+            logger.info("Detected TAR.BZ2 archive, using tarfile")
+            import tarfile
+            with tarfile.open(archive_path, 'r:bz2') as tf:
+                tf.extractall(extract_dir)
+                
+        elif archive_lower.endswith('.tar'):
+            logger.info("Detected TAR archive, using tarfile")
+            import tarfile
+            with tarfile.open(archive_path, 'r') as tf:
+                tf.extractall(extract_dir)
+                
         else:
-            logger.info("Using rarfile for extraction")
-            with rarfile.RarFile(archive_path) as rf:
-                rf.extractall(extract_dir)
+            logger.warning(f"Unsupported archive format: {archive_path}")
+            raise Exception(f"Unsupported archive format: {archive_path}")
         
         logger.info(f"Extraction completed successfully to: {extract_dir}")
         return extract_dir

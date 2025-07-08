@@ -128,3 +128,57 @@ python -m pytest tests/
 - **requests**: HTTP client for Radarr API calls
 - **rarfile**: RAR archive extraction support
 - **watchdog**: File system monitoring
+- **py7zr**: 7-Zip archive extraction support
+
+## Architecture
+
+The application consists of several key components:
+
+- **Flask Web Server**: Handles webhook requests from Radarr on port 9898
+- **File System Monitor**: Watches the download directory for new files using watchdog
+- **Extraction Engine**: Supports multiple archive formats with format-specific handlers
+- **Radarr Integration**: Automatically notifies Radarr to rescan extracted content
+- **Tracking System**: Prevents duplicate processing of already-extracted files
+
+## Docker Support
+
+### TrueNAS SCALE
+
+For TrueNAS SCALE users, the container supports PUID/PGID for proper permission handling:
+
+```bash
+docker run -d \
+    -e PUID=1000 \
+    -e PGID=1000 \
+    -e RADARR_URL=http://your-radarr:7878 \
+    -e RADARR_API_KEY=your-api-key \
+    -v /mnt/pool/downloads:/downloads \
+    -p 9898:9898 \
+    crzyc/radarr-extractor:latest
+```
+
+### Health Check
+
+The container includes a health check that verifies the Flask application is running:
+- **Interval**: 30 seconds
+- **Timeout**: 10 seconds
+- **Start Period**: 30 seconds
+- **Retries**: 3
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Changelog
+
+### Recent Updates
+- Added support for multiple archive formats (ZIP, 7z, TAR)
+- Implemented proper PUID/PGID support for Docker
+- Added comprehensive unit tests
+- Fixed health check configuration
+- Improved error handling and logging
+- Added background directory scanning to prevent Flask startup blocking
+
+## Support
+
+For issues, questions, or contributions, please visit the [GitHub repository](https://github.com/crzyc98/radarr-extractor).

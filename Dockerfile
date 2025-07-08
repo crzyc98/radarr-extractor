@@ -45,7 +45,9 @@ RUN groupadd -g ${PGID} appuser && \
 # Expose Flask port (configurable via WEBHOOK_PORT, defaults to 9898)
 EXPOSE 9898
 
-# Health check temporarily removed for debugging
+# Health check to ensure container is running
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD python -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:9898/", timeout=5).read()' || exit 1
 
 # Set entrypoint and default command
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
