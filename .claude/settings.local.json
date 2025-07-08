@@ -15,7 +15,12 @@
       "Bash(docker inspect:*)",
       "Bash(docker tag:*)",
       "Bash(docker login:*)",
-      "Bash(docker push:*)"
+      "Bash(docker push:*)",
+      "Bash(docker pull:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker system prune:*)",
+      "Bash(docker-compose down:*)",
+      "Bash(docker rmi:*)"
     ],
     "deny": []
   }

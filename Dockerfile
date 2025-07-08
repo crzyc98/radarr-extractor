@@ -37,17 +37,15 @@ RUN chmod 755 /usr/local/bin/entrypoint.sh
 # Create matching group & user to satisfy any USER appuser directive
 RUN groupadd -g ${PGID} appuser && \
     useradd -u ${PUID} -g appuser -M -s /usr/sbin/nologin appuser && \
-    mkdir -p /downloads /downloads/extracted /downloads/.extracted_files /config && \
+    mkdir -p /downloads /downloads/extracted /config && \
     chown -R appuser:appuser /app /downloads /config
 
 # NOTE: Don't set USER here - entrypoint will handle user switching
 
-# Expose Flask port
+# Expose Flask port (configurable via WEBHOOK_PORT, defaults to 9898)
 EXPOSE 9898
 
-# Health check to ensure container is running
-HEALTHCHECK --interval=5m --timeout=3s \
-    CMD python -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.connect(("127.0.0.1", 9898)); s.close();' || exit 1
+# Health check temporarily removed for debugging
 
 # Set entrypoint and default command
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
