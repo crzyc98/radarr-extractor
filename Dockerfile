@@ -17,6 +17,10 @@ COPY . .
 FROM python:3.9-slim-bullseye
 WORKDIR /app
 
+# Build arguments for user creation
+ARG PUID=1000
+ARG PGID=1000
+
 # Copy the app from the builder
 COPY --from=builder /app /app
 # Copy the unrar executable from the builder
@@ -26,21 +30,21 @@ COPY --from=builder /usr/local/bin/gosu /usr/local/bin/gosu
 # Copy the installed packages from the builder
 COPY --from=builder /usr/local/lib/python3.9/site-packages/ /usr/local/lib/python3.9/site-packages/
 
-# Create directories for the application (no user creation here)
-RUN mkdir -p /config /downloads /downloads/extracted /downloads/.extracted_files
+# Create matching group & user to satisfy any USER appuser directive
+RUN groupadd -g ${PGID} appuser && \
+    useradd -u ${PUID} -g appuser -M -s /usr/sbin/nologin appuser && \
+    mkdir -p /downloads /downloads/extracted /downloads/.extracted_files /config && \
+    chown -R appuser:appuser /app /downloads /config
 
-# Copy and set up entrypoint script
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+# Switch to non-root user (satisfies the original USER directive)
+USER appuser
 
 # Expose Flask port
 EXPOSE 9898
 
-# Health check disabled temporarily - will be enabled after abc user is confirmed working
-# HEALTHCHECK --interval=5m --timeout=3s \
-#     CMD /usr/local/bin/gosu abc python -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.connect(("127.0.0.1", 9898)); s.close();' || exit 1
+# Health check to ensure container is running
+HEALTHCHECK --interval=5m --timeout=3s \
+    CMD python -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.connect(("127.0.0.1", 9898)); s.close();' || exit 1
 
-# Use entrypoint script (container starts as root)
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-# Default command
+# Start the application directly (no entrypoint needed)
 CMD ["python", "-m", "radarr_extractor.main"]

@@ -7,8 +7,6 @@ services:
       - RADARR_URL=${RADARR_URL}
       - RADARR_API_KEY=${RADARR_API_KEY}
       - DOWNLOAD_DIR=${DOWNLOAD_DIR:-/downloads}
-      - PUID=${PUID:-1000}
-      - PGID=${PGID:-1000}
     ports:
       - "9898:9898"
     volumes:
