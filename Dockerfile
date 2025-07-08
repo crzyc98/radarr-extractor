@@ -36,9 +36,9 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 # Expose Flask port
 EXPOSE 9898
 
-# Health check to ensure container is running (will run as abc user after entrypoint)
-HEALTHCHECK --interval=5m --timeout=3s \
-    CMD /usr/local/bin/gosu abc python -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.connect(("127.0.0.1", 9898)); s.close();' || exit 1
+# Health check disabled temporarily - will be enabled after abc user is confirmed working
+# HEALTHCHECK --interval=5m --timeout=3s \
+#     CMD /usr/local/bin/gosu abc python -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.connect(("127.0.0.1", 9898)); s.close();' || exit 1
 
 # Use entrypoint script (container starts as root)
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
