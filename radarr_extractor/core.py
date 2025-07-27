@@ -23,13 +23,12 @@ def is_compressed_file(filename):
     return any(filename.lower().endswith(ext) for ext in compressed_extensions)
 
 def extract_archive(archive_path):
-    """Extract archive to the extracted directory."""
+    """Extract archive to the same directory as the archive."""
     logger.info(f"Starting archive extraction for: {archive_path}")
     
-    # Create unique extraction directory
-    extract_dir = os.path.join(EXTRACTED_DIR, os.path.basename(archive_path) + '_extracted')
-    os.makedirs(extract_dir, exist_ok=True)
-    logger.info(f"Created extraction directory: {extract_dir}")
+    # Extract to same directory as the archive
+    extract_dir = os.path.dirname(archive_path)
+    logger.info(f"Extracting to same directory: {extract_dir}")
 
     try:
         if archive_path.lower().endswith('.rar'):
