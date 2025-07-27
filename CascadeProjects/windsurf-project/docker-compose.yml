@@ -1,0 +1,19 @@
+services:
+  radarr-extractor:
+    image: crzyc/radarr-extractor:latest
+    container_name: radarr-extractor
+    environment:
+      - RADARR_URL=http://192.168.99.30:7878
+      - RADARR_API_KEY=8b196869cab34899b741e7340423ed18
+      - DOWNLOAD_DIR=/downloads
+    ports:
+      - "9898:9898"
+    volumes:
+      - /mnt/Pool1/bigdata/download/completed:/downloads
+    restart: unless-stopped
+    networks:
+      - radarr_radarr_network
+
+networks:
+  radarr_radarr_network:
+    external: true  # Using existing Radarr network

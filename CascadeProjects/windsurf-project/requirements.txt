@@ -1,0 +1,5 @@
+watchdog==3.0.0
+rarfile==4.0
+requests==2.31.0
+patool==1.12
+flask==2.3.3
