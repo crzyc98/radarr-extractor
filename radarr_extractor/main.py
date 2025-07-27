@@ -1,4 +1,5 @@
 import os
+import sys
 from flask import Flask, request, jsonify
 from watchdog.observers import Observer
 from radarr_extractor.config import DOWNLOAD_DIR, WEBHOOK_PORT, logger
@@ -46,24 +47,69 @@ def webhook():
     return jsonify({'status': 'ignored', 'event': event_type}), 200
 
 def main():
+    print("=== MAIN.PY DEBUG START ===")
+    print(f"Python path: {sys.path}")
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"Current user: {os.getuid()}:{os.getgid()}")
+    
     logger.info("Starting Radarr Download Extractor")
     logger.info(f"Monitoring directory: {DOWNLOAD_DIR}")
+    logger.info(f"Webhook port: {WEBHOOK_PORT}")
     
-    # Recursively scan download directory for existing files
-    scan_directory(DOWNLOAD_DIR)
+    # Check if download directory exists and is accessible
+    if not os.path.exists(DOWNLOAD_DIR):
+        logger.error(f"Download directory does not exist: {DOWNLOAD_DIR}")
+        return
     
-    # Start the file system observer
-    event_handler = DownloadHandler()
-    observer = Observer()
-    observer.schedule(event_handler, DOWNLOAD_DIR, recursive=True)
-    observer.start()
-    logger.info("File system observer started with recursive monitoring")
-
+    if not os.access(DOWNLOAD_DIR, os.R_OK | os.W_OK):
+        logger.error(f"No read/write access to download directory: {DOWNLOAD_DIR}")
+        return
+    
+    logger.info("Download directory is accessible")
+    
+    # Check if we can create the tracker file
+    from radarr_extractor.config import TRACKER_FILE
     try:
+        with open(TRACKER_FILE, 'a') as f:
+            pass  # Just test if we can open it
+        logger.info("Tracker file is accessible")
+    except Exception as e:
+        logger.error(f"Cannot access tracker file {TRACKER_FILE}: {e}")
+        return
+    
+    try:
+        # Start the file system observer first
+        logger.info("Starting file system observer...")
+        event_handler = DownloadHandler()
+        observer = Observer()
+        observer.schedule(event_handler, DOWNLOAD_DIR, recursive=True)
+        observer.start()
+        logger.info("File system observer started with recursive monitoring")
+
         # Start the Flask webhook server
         logger.info(f"Starting webhook server on port {WEBHOOK_PORT}")
-        app.run(host='0.0.0.0', port=WEBHOOK_PORT)
+        logger.info("Flask app is about to start...")
+        
+        # Start directory scan in a separate thread so it doesn't block Flask startup
+        import threading
+        def background_scan():
+            logger.info("Starting background directory scan...")
+            scan_directory(DOWNLOAD_DIR)
+            logger.info("Background directory scan completed")
+        
+        scan_thread = threading.Thread(target=background_scan, daemon=True)
+        scan_thread.start()
+        
+        # Start Flask server (this will block)
+        app.run(host='0.0.0.0', port=WEBHOOK_PORT, debug=False)
+        
+    except Exception as e:
+        logger.error(f"Fatal error during startup: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return
     except KeyboardInterrupt:
+        logger.info("Received keyboard interrupt, shutting down...")
         observer.stop()
         observer.join()
 

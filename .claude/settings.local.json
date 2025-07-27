@@ -2,8 +2,25 @@
   "permissions": {
     "allow": [
       "Bash(git add:*)",
+      "Bash(ls:*)",
       "Bash(git commit:*)",
-      "Bash(docker build:*)"
+      "Bash(docker build:*)",
+      "Bash(mkdir:*)",
+      "Bash(docker run:*)",
+      "Bash(PUID=1000 PGID=1000 ./docker-build.sh)",
+      "Bash(rm:*)",
+      "Bash(./docker-build.sh:*)",
+      "Bash(grep:*)",
+      "Bash(PUID=3000 PGID=1000 ./docker-build.sh)",
+      "Bash(docker inspect:*)",
+      "Bash(docker tag:*)",
+      "Bash(docker login:*)",
+      "Bash(docker push:*)",
+      "Bash(docker pull:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker system prune:*)",
+      "Bash(docker-compose down:*)",
+      "Bash(docker rmi:*)"
     ],
     "deny": []
   }
