@@ -14,7 +14,7 @@ echo "Arguments: $@"
 
 # Ensure directories exist and have correct ownership
 echo "Creating directories..."
-mkdir -p /downloads /downloads/extracted /downloads/.extracted_files /config 2>/dev/null || true
+mkdir -p /downloads /downloads/extracted /config 2>/dev/null || true
 
 # Only try to change ownership if we have permission
 echo "Setting ownership..."

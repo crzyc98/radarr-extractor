@@ -58,6 +58,14 @@ docker-compose up -d
 | `RADARR_URL` | URL of your Radarr instance | `http://localhost:7878` |
 | `RADARR_API_KEY` | Your Radarr API key | `abcd1234efgh5678ijkl` |
 | `DOWNLOAD_DIR` | Directory where downloads are stored | `/downloads` |
+| `EXTRACT_MODE` | Where to extract archives: `inplace` (default) or `extracted_dir` | `inplace` |
+| `RADARR_NOTIFY` | Whether to notify Radarr after extraction (`true`/`false`) | `true` |
+| `EXTRACT_ONLY_MEDIA` | Extract only media/subtitle files for speed (`true`/`false`) | `false` |
+| `MAX_CONCURRENT_EXTRACTS` | Parallel extractions during scans/events | `1` |
+| `STABILITY_WINDOW_SEC` | Seconds between stability polls | `10` |
+| `STABILITY_POLLS` | Number of unchanged polls to consider stable | `3` |
+| `MAX_WAIT_PER_ARCHIVE_SEC` | Max wait for a file to become stable | `300` |
+| `EXTRACT_BACKEND` | Extraction backend: `python` (default) or `system_fast` (future) | `python` |
 
 ### Radarr Webhook Setup
 
@@ -172,12 +180,12 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Changelog
 
 ### Recent Updates
-- Added support for multiple archive formats (ZIP, 7z, TAR)
-- Implemented proper PUID/PGID support for Docker
-- Added comprehensive unit tests
-- Fixed health check configuration
-- Improved error handling and logging
-- Added background directory scanning to prevent Flask startup blocking
+- Safe extraction for ZIP/TAR/RAR/7z to prevent path traversal
+- Optional extraction destination via `EXTRACT_MODE`
+- Debounce/locking to avoid duplicate processing during downloads
+- Import-time side effects removed; logging configured at runtime
+- Optional Radarr notify via `RADARR_NOTIFY` with retries
+- Proper handling of tracker file creation in entrypoint
 
 ## Support
 

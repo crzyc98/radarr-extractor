@@ -1,10 +1,11 @@
 import os
 import sys
 import threading
+import logging
 from urllib.parse import quote
 from flask import Flask, request, jsonify, render_template, redirect, url_for
 from watchdog.observers import Observer
-from radarr_extractor.config import DOWNLOAD_DIR, WEBHOOK_PORT, logger
+from radarr_extractor.config import DOWNLOAD_DIR, WEBHOOK_PORT, EXTRACT_MODE, EXTRACTED_DIR, logger
 from radarr_extractor.core import scan_directory, DownloadHandler, process_file, is_compressed_file
 app = Flask(__name__)
 
@@ -14,7 +15,8 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'service': 'radarr-extractor',
-        'monitored_directory': DOWNLOAD_DIR
+        'monitored_directory': DOWNLOAD_DIR,
+        'browse_ui': '/browse'
     }), 200
 
 @app.route('/webhook', methods=['POST'])
@@ -174,26 +176,38 @@ def rescan_route():
     return redirect(url_for('browse', path=rel, msg=f"Rescan started"))
 
 def main():
-    print("=== MAIN.PY DEBUG START ===")
-    print(f"Python path: {sys.path}")
-    print(f"Current working directory: {os.getcwd()}")
-    print(f"Current user: {os.getuid()}:{os.getgid()}")
-    
+    # Configure logging once at runtime
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+
     logger.info("Starting Radarr Download Extractor")
     logger.info(f"Monitoring directory: {DOWNLOAD_DIR}")
     logger.info(f"Webhook port: {WEBHOOK_PORT}")
     
-    # Check if download directory exists and is accessible
+    # Ensure download directory exists; warn if not readable/writable
     if not os.path.exists(DOWNLOAD_DIR):
-        logger.error(f"Download directory does not exist: {DOWNLOAD_DIR}")
-        return
+        try:
+            os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+            logger.info(f"Created download directory: {DOWNLOAD_DIR}")
+        except Exception as e:
+            logger.error(f"Cannot create download directory {DOWNLOAD_DIR}: {e}")
     
     if not os.access(DOWNLOAD_DIR, os.R_OK | os.W_OK):
-        logger.error(f"No read/write access to download directory: {DOWNLOAD_DIR}")
-        return
+        logger.warning(f"Limited access to download directory (R/W expected): {DOWNLOAD_DIR}")
+    else:
+        logger.info("Download directory is accessible")
     
-    logger.info("Download directory is accessible")
-    
+    # If using extracted_dir mode, ensure it exists
+    if EXTRACT_MODE == 'extracted_dir':
+        try:
+            os.makedirs(EXTRACTED_DIR, exist_ok=True)
+            logger.info(f"Ensured extracted directory exists: {EXTRACTED_DIR}")
+        except Exception as e:
+            logger.warning(f"Cannot create extracted directory {EXTRACTED_DIR}: {e}")
+
     # Check if we can create the tracker file
     from radarr_extractor.config import TRACKER_FILE
     try:
@@ -201,17 +215,20 @@ def main():
             pass  # Just test if we can open it
         logger.info("Tracker file is accessible")
     except Exception as e:
-        logger.error(f"Cannot access tracker file {TRACKER_FILE}: {e}")
-        return
+        logger.warning(f"Cannot access tracker file {TRACKER_FILE}: {e}")
     
     try:
         # Start the file system observer first
-        logger.info("Starting file system observer...")
-        event_handler = DownloadHandler()
-        observer = Observer()
-        observer.schedule(event_handler, DOWNLOAD_DIR, recursive=True)
-        observer.start()
-        logger.info("File system observer started with recursive monitoring")
+        observer = None
+        try:
+            logger.info("Starting file system observer...")
+            event_handler = DownloadHandler()
+            observer = Observer()
+            observer.schedule(event_handler, DOWNLOAD_DIR, recursive=True)
+            observer.start()
+            logger.info("File system observer started with recursive monitoring")
+        except Exception as e:
+            logger.warning(f"Watchdog observer could not start: {e}")
 
         # Start the Flask webhook server
         logger.info(f"Starting webhook server on port {WEBHOOK_PORT}")
@@ -220,7 +237,10 @@ def main():
         # Start directory scan in a separate thread so it doesn't block Flask startup
         def background_scan():
             logger.info("Starting background directory scan...")
-            scan_directory(DOWNLOAD_DIR)
+            try:
+                scan_directory(DOWNLOAD_DIR)
+            except Exception as e:
+                logger.warning(f"Background scan failed: {e}")
             logger.info("Background directory scan completed")
         
         scan_thread = threading.Thread(target=background_scan, daemon=True)
@@ -236,8 +256,12 @@ def main():
         return
     except KeyboardInterrupt:
         logger.info("Received keyboard interrupt, shutting down...")
-        observer.stop()
-        observer.join()
+        try:
+            if observer:
+                observer.stop()
+                observer.join()
+        except Exception:
+            pass
 
 if __name__ == "__main__":
     main()
