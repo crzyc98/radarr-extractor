@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Radarr Extractor – Browse</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 1.5rem; }
+      header { margin-bottom: 1rem; }
+      .breadcrumbs a { text-decoration: none; color: #0366d6; }
+      .breadcrumbs span { margin: 0 .25rem; color: #999; }
+      .msg { background: #eef7ee; border: 1px solid #b7e1b7; padding: .5rem .75rem; margin-bottom: 1rem; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { padding: .5rem; border-bottom: 1px solid #eee; }
+      td.actions { text-align: right; white-space: nowrap; }
+      .dir { color: #333; font-weight: 600; }
+      .file { color: #333; }
+      form { display: inline; }
+      .btn { padding: .3rem .6rem; border: 1px solid #ccc; background: #fafafa; border-radius: 4px; cursor: pointer; }
+      .btn:hover { background: #f0f0f0; }
+      .muted { color: #888; }
+      .top-actions { margin-bottom: .75rem; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Browse Downloads</h1>
+      <div class="breadcrumbs">
+        {% for href, label in breadcrumbs %}
+          <a href="{{ href }}">{{ label }}</a>{% if not loop.last %}<span>/</span>{% endif %}
+        {% endfor %}
+      </div>
+    </header>
+
+    {% if message %}
+      <div class="msg">{{ message }}</div>
+    {% endif %}
+
+    <div class="top-actions">
+      {% if not at_root %}
+        <a class="btn" href="{{ url_for('browse', path=parent_rel) }}">⬅ Up</a>
+        <form method="post" action="{{ url_for('rescan_route') }}">
+          <input type="hidden" name="path" value="{{ current_path }}" />
+          <button class="btn" type="submit">Rescan This Folder</button>
+        </form>
+      {% else %}
+        <form method="post" action="{{ url_for('rescan_route') }}">
+          <input type="hidden" name="path" value="{{ current_path }}" />
+          <button class="btn" type="submit">Rescan Root</button>
+        </form>
+      {% endif %}
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th class="actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+          <tr>
+            <td>
+              {% if e.is_dir %}
+                <a class="dir" href="{{ url_for('browse', path=e.rel) }}">📁 {{ e.name }}</a>
+              {% else %}
+                <span class="file">📄 {{ e.name }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if e.is_dir %}
+                Directory
+              {% elif e.is_archive %}
+                Archive
+              {% else %}
+                File
+              {% endif %}
+            </td>
+            <td class="actions">
+              {% if e.is_archive %}
+                <form method="post" action="{{ url_for('extract_route') }}">
+                  <input type="hidden" name="path" value="{{ e.path }}" />
+                  <button class="btn" type="submit">Extract</button>
+                </form>
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </body>
+  </html>
+

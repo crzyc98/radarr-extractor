@@ -1,9 +1,11 @@
 import os
 import sys
-from flask import Flask, request, jsonify
+import threading
+from urllib.parse import quote
+from flask import Flask, request, jsonify, render_template, redirect, url_for
 from watchdog.observers import Observer
 from radarr_extractor.config import DOWNLOAD_DIR, WEBHOOK_PORT, logger
-from radarr_extractor.core import scan_directory, DownloadHandler, process_file
+from radarr_extractor.core import scan_directory, DownloadHandler, process_file, is_compressed_file
 app = Flask(__name__)
 
 @app.route('/', methods=['GET'])
@@ -45,6 +47,131 @@ def webhook():
                 logger.info(f"File either doesn't exist or is not compressed: {file_path}")
     
     return jsonify({'status': 'ignored', 'event': event_type}), 200
+
+# ---- Simple LAN-only UI for manual extraction ----
+def _resolve_safe_path(user_path: str) -> str:
+    """Resolve a user-supplied path safely inside DOWNLOAD_DIR.
+    Accepts absolute paths under DOWNLOAD_DIR or paths relative to it.
+    Raises ValueError for traversal or out-of-root paths.
+    """
+    if not user_path:
+        return DOWNLOAD_DIR
+    # If relative, join to DOWNLOAD_DIR; if absolute, keep but validate
+    candidate = user_path
+    if not os.path.isabs(candidate):
+        candidate = os.path.join(DOWNLOAD_DIR, candidate)
+    candidate = os.path.realpath(candidate)
+    root = os.path.realpath(DOWNLOAD_DIR)
+    if os.path.commonpath([root, candidate]) != root:
+        raise ValueError("Path outside monitored directory")
+    return candidate
+
+def _breadcrumbs(abs_path: str):
+    root = os.path.realpath(DOWNLOAD_DIR)
+    parts = []
+    # Build breadcrumb segments from root to current
+    rel = os.path.relpath(abs_path, root)
+    if rel == '.' or rel.startswith('..'):
+        return [("/browse", "/")]  # root only
+    accum = ""
+    parts.append((url_for('browse'), "/"))
+    for segment in rel.split(os.sep):
+        accum = os.path.join(accum, segment)
+        parts.append((url_for('browse', path=accum), segment))
+    return parts
+
+@app.route('/browse', methods=['GET'])
+def browse():
+    # Default to DOWNLOAD_DIR
+    user_path = request.args.get('path', '')
+    message = request.args.get('msg')
+    try:
+        abs_path = _resolve_safe_path(user_path)
+    except ValueError as e:
+        logger.warning(f"Rejected browse path '{user_path}': {e}")
+        return jsonify({"error": "Invalid path"}), 400
+
+    if not os.path.exists(abs_path):
+        return jsonify({"error": "Path not found"}), 404
+
+    entries = []
+    try:
+        with os.scandir(abs_path) as it:
+            for entry in it:
+                # Hide some noisy files
+                if entry.name in {'.', '..', '.DS_Store', '.extracted_files'}:
+                    continue
+                epath = os.path.join(abs_path, entry.name)
+                item = {
+                    'name': entry.name,
+                    'is_dir': entry.is_dir(),
+                    'path': epath,
+                    'rel': os.path.relpath(epath, DOWNLOAD_DIR),
+                    'is_archive': False
+                }
+                if entry.is_file():
+                    item['is_archive'] = is_compressed_file(entry.name)
+                entries.append(item)
+    except PermissionError:
+        return jsonify({"error": "Permission denied"}), 403
+
+    # Sort: directories first, then files alphabetically
+    entries.sort(key=lambda x: (not x['is_dir'], x['name'].lower()))
+
+    crumbs = _breadcrumbs(abs_path)
+    at_root = os.path.realpath(abs_path) == os.path.realpath(DOWNLOAD_DIR)
+    parent_rel = None if at_root else os.path.relpath(os.path.dirname(abs_path), DOWNLOAD_DIR)
+
+    return render_template(
+        'browse.html',
+        current_path=abs_path,
+        entries=entries,
+        breadcrumbs=crumbs,
+        at_root=at_root,
+        parent_rel=parent_rel,
+        message=message,
+    )
+
+@app.route('/extract', methods=['POST'])
+def extract_route():
+    target = request.form.get('path', '')
+    try:
+        abs_target = _resolve_safe_path(target)
+    except ValueError as e:
+        logger.warning(f"Rejected extract path '{target}': {e}")
+        return jsonify({"error": "Invalid path"}), 400
+
+    if not os.path.isfile(abs_target) or not is_compressed_file(abs_target):
+        return jsonify({"error": "Not an archive file"}), 400
+
+    def _bg():
+        logger.info(f"UI-triggered extraction for: {abs_target}")
+        process_file(abs_target)
+
+    threading.Thread(target=_bg, daemon=True).start()
+    current_dir = os.path.dirname(abs_target)
+    rel = os.path.relpath(current_dir, DOWNLOAD_DIR)
+    return redirect(url_for('browse', path=rel, msg=f"Extraction queued for {os.path.basename(abs_target)}"))
+
+@app.route('/rescan', methods=['POST'])
+def rescan_route():
+    target = request.form.get('path', '')
+    try:
+        abs_target = _resolve_safe_path(target)
+    except ValueError as e:
+        logger.warning(f"Rejected rescan path '{target}': {e}")
+        return jsonify({"error": "Invalid path"}), 400
+
+    if not os.path.isdir(abs_target):
+        return jsonify({"error": "Not a directory"}), 400
+
+    def _bg():
+        logger.info(f"UI-triggered rescan for: {abs_target}")
+        scan_directory(abs_target)
+
+    threading.Thread(target=_bg, daemon=True).start()
+    rel = os.path.relpath(abs_target, DOWNLOAD_DIR)
+    return redirect(url_for('browse', path=rel, msg=f"Rescan started"))
 
 def main():
     print("=== MAIN.PY DEBUG START ===")
@@ -91,7 +218,6 @@ def main():
         logger.info("Flask app is about to start...")
         
         # Start directory scan in a separate thread so it doesn't block Flask startup
-        import threading
         def background_scan():
             logger.info("Starting background directory scan...")
             scan_directory(DOWNLOAD_DIR)
